@@ -1,0 +1,5 @@
+*.o
+.depend
+modbus-dump
+modbus-get
+modbus-set
