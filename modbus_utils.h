@@ -90,6 +90,7 @@ enum modbus_dbg_lev_e {
 
 enum modbus_type_e {
 	RTU,
+	TCP,
 	__TYPE_ERROR
 };
 
@@ -101,6 +102,11 @@ struct modbus_parms_s {
 		char parity;
 		int stop;
 	} rtu;
+
+	struct modbus_tcp_parms_s {
+		char *address;
+		int port;
+	} tcp;
 };
 
 /*

@@ -24,7 +24,19 @@ int enable_debug;
 
 enum modbus_type_e modbus_type = RTU;
 struct modbus_parms_s modbus_parms = {
-	/* RTU */ {"/dev/ttyUSB0", 115200, 8, 'N', 1}
+	/* RTU */
+	{
+		.serial_dev	= "/dev/ttyUSB0",
+		.baud		= 115200,
+		.bytes		= 8,
+		.parity		= 'N',
+		.stop		= 1
+	},
+	/* TCP */
+	{
+		.address	= "127.0.0.1",
+		.port		= 1502
+	}
 };
 
 /*
@@ -41,6 +53,21 @@ static int parse_rtu_opts(char *opts)
 		     &modbus_parms.rtu.baud,
 		     &modbus_parms.rtu.bytes,
 		     &modbus_parms.rtu.parity, &modbus_parms.rtu.stop);
+	free(str);
+	if (ret < 1)
+		return -1;
+
+	return 0;
+}
+
+static int parse_tcp_opts(char *opts)
+{
+	char *str;
+	int ret;
+
+	ret = sscanf(optarg, "%a[a-z]:%a[a-zA-Z0-9/_],%d", &str,
+		     &modbus_parms.tcp.address,
+		     &modbus_parms.tcp.port);
 	free(str);
 	if (ret < 1)
 		return -1;
@@ -73,6 +100,7 @@ void usage_common_opts(void)
 		"\t--device | -d <dev>  - specify MODBUS device to use\n"
 		"\t                       <dev> can be:\n"
 		"\t                       - rtu[:<ttydev>[,<baud>[,<bits><parity><stop>]]]\n"
+		"\t                       - tcp[:<address>[,<port>]]\n"
 		"\t--help   | -h        - show this help message\n");
 }
 
@@ -127,6 +155,15 @@ int check_common_opts(int argc, char *argv[])
 					err("invalid RTU options");
 					exit(EXIT_FAILURE);
 				}
+			} else if (strcmp(str, "tcp") == 0) {
+				free(str);
+				modbus_type = TCP;
+
+				ret = parse_tcp_opts(optarg);
+				if (ret < 0) {
+					err("invalid TCP options");
+					exit(EXIT_FAILURE);
+				}
 			} else {
 				err("unknow MODBUS type");
 				exit(EXIT_FAILURE);
@@ -158,6 +195,13 @@ int check_common_opts(int argc, char *argv[])
 		    modbus_parms.rtu.baud,
 		    modbus_parms.rtu.bytes,
 		    modbus_parms.rtu.parity, modbus_parms.rtu.stop);
+
+		break;
+
+	case TCP:
+		dbg("modbus tcp:%s,%d",
+		    modbus_parms.tcp.address,
+		    modbus_parms.tcp.port);
 
 		break;
 
@@ -215,6 +259,11 @@ modbus_t *modbus_client_connect(uint8_t addr)
 				     modbus_parms.rtu.parity,
 				     modbus_parms.rtu.bytes,
 				     modbus_parms.rtu.stop);
+		break;
+
+	case TCP:
+		ctx = modbus_new_tcp(modbus_parms.tcp.address,
+				     modbus_parms.tcp.port);
 		break;
 
 	default:
