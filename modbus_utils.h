@@ -127,5 +127,6 @@ extern int parse_reg(char *reg);
 extern int parse_datum(char *datum);
 
 extern modbus_t *modbus_client_connect(uint8_t addr);
+extern modbus_t *modbus_server_connect(uint8_t addr);
 
 #endif /* _MODBUS_UTILS_H */

@@ -298,3 +298,74 @@ free:
 exit:
 	return NULL;
 }
+
+modbus_t *modbus_server_connect(uint8_t addr)
+{
+	modbus_t *ctx;
+	int socket;
+	int ret;
+
+	dbg("addr=%d", addr);
+
+	switch (modbus_type) {
+	case RTU:
+		ctx = modbus_new_rtu(modbus_parms.rtu.serial_dev,
+				     modbus_parms.rtu.baud,
+				     modbus_parms.rtu.parity,
+				     modbus_parms.rtu.bytes,
+				     modbus_parms.rtu.stop);
+		break;
+
+	case TCP:
+		ctx = modbus_new_tcp(modbus_parms.tcp.address,
+				     modbus_parms.tcp.port);
+		break;
+
+	default:
+		BUG();
+	}
+	if (!ctx) {
+		err("MODBUS init error: %s", modbus_strerror(errno));
+		goto exit;
+	}
+
+	switch (modbus_type) {
+	case RTU:
+		ret = modbus_connect(ctx);
+		if (ret == -1) {
+			err("MODBUS connect error: %s", modbus_strerror(errno));
+			goto free;
+		}
+		break;
+
+	case TCP:
+		socket = modbus_tcp_listen(ctx, 1);
+		if (socket < 0) {
+			err("MODBUS listen error: %s", modbus_strerror(errno));
+			goto free;
+		}
+		modbus_tcp_accept(ctx, &socket);
+		break;
+
+	default:
+		BUG();
+	}
+
+	if (enable_debug >= DEBUG_VERBOSE)
+		modbus_set_debug(ctx, 1);
+
+	ret = modbus_set_slave(ctx, addr);
+	if (ret == -1) {
+		err("MODBUS set_slave error: %s", modbus_strerror(errno));
+		goto close;
+	}
+
+	return ctx;
+
+close:
+	modbus_close(ctx);
+free:
+	modbus_free(ctx);
+exit:
+	return NULL;
+}
