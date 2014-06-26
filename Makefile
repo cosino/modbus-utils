@@ -1,4 +1,4 @@
-TARGETS = modbus-dump modbus-get modbus-set
+TARGETS = modbus-dump modbus-get modbus-set modbus-test
 COMMON_SRCS = common.c
 
 CFLAGS := -Wall -O2 -D_GNU_SOURCE $(shell pkg-config --cflags libmodbus)
