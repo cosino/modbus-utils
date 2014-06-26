@@ -285,7 +285,7 @@ modbus_t *modbus_client_connect(uint8_t addr)
 
 	ret = modbus_set_slave(ctx, addr);
 	if (ret == -1) {
-		err("RTU connect error: %s", modbus_strerror(errno));
+		err("MODBUS set_slave error: %s", modbus_strerror(errno));
 		goto close;
 	}
 

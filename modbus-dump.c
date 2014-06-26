@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 
 	ctx = modbus_client_connect(addr);
 	if (!ctx) {
-		err("modbud connection failed: %s", modbus_strerror(errno));
+		err("connection failed: %s", modbus_strerror(errno));
 		exit(1);
 	}
 
