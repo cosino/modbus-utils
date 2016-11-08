@@ -48,7 +48,7 @@ static int parse_rtu_opts(char *opts)
 	char *str;
 	int ret;
 
-	ret = sscanf(optarg, "%a[a-z]:%a[a-zA-Z0-9/_],%d,%d%c%d", &str,
+	ret = sscanf(optarg, "%m[a-z]:%m[a-zA-Z0-9/_],%d,%d%c%d", &str,
 		     &modbus_parms.rtu.serial_dev,
 		     &modbus_parms.rtu.baud,
 		     &modbus_parms.rtu.bytes,
@@ -65,7 +65,7 @@ static int parse_tcp_opts(char *opts)
 	char *str;
 	int ret;
 
-	ret = sscanf(optarg, "%a[a-z]:%a[a-zA-Z0-9/_],%d", &str,
+	ret = sscanf(optarg, "%m[a-z]:%m[a-zA-Z0-9._],%d", &str,
 		     &modbus_parms.tcp.address,
 		     &modbus_parms.tcp.port);
 	free(str);
@@ -140,7 +140,7 @@ int check_common_opts(int argc, char *argv[])
 			break;
 
 		case 'd':	/* --device */
-			ret = sscanf(optarg, "%a[a-z]", &str);
+			ret = sscanf(optarg, "%m[a-z]", &str);
 			if (ret != 1) {
 				err("must specify a MODBUS type");
 				exit(EXIT_FAILURE);
