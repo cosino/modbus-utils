@@ -7,6 +7,30 @@ MODBUS slave.
 Note: ths projects is still in beta version so refer to the "known bugs"
       section for further info!
 
+Compile
+-------
+
+In order to compile the code you need the libmodbus library from
+http://libmodbus.org/.
+
+For Debian and Ubuntu users the library can be easily obtained by using the
+usual apt-get (or equivalent) command as below:
+
+    $ sudo apt-get install libmodbus-dev
+
+Also you may wish installing also the next packages (if not already present):
+
+    $ sudo apt-get install gcc make pkg-config
+
+Then download the code and enter into the code's directory:
+
+    $ git clone https://github.com/cosino/modbus-utils.git
+    $ cd modbus-utils
+
+Now you can compile as usual by using make:
+
+    $ make
+
 
 Usage
 -----
