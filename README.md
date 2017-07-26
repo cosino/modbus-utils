@@ -73,6 +73,24 @@ and you can modify it by using for instance:
 to specify serial the device /dev/ttyUSB1 set at 9600 baud, 8 data
 bits, even parity and 1 bit stop.
 
+If you need to see each data byte exchanged with the remote device you can
+use a double -D option argument as below:
+
+    $ ./modbus-dump -DD -d rtu:/dev/ttymxc1,460800,8N1 1 0x1000 0x1002
+    common.c[ 190]: check_common_opts: debug is on
+    common.c[ 197]: check_common_opts: modbus rtu:/dev/ttymxc1,460800,8,N,1
+    common.c[ 253]: modbus_client_connect: addr=1
+    [01][03][10][00][00][03][01][0B]
+    Waiting for a confirmation...
+    <00><00><00><00><00>
+    ERROR CRC received 0 != CRC calculated 71C0
+    read error: Invalid CRC
+
+In the above example we can see that we send a valid MODBUS request but the
+remote device answered in a wrong way!
+
+Note also that in last example I specified the registers by using hex values.
+
 
 Known bugs
 ----------
