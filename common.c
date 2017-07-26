@@ -97,11 +97,21 @@ void usage_common_opts(void)
 {
 	fprintf(stderr, "where <options> are:\n"
 		"\t--debug  | -D        - enable debug messages (more increase verbosity)\n"
-		"\t--device | -d <dev>  - specify MODBUS device to use\n"
+		"\t--device | -d <dev>  - specify MODBUS device to use (default is %s)\n"
 		"\t                       <dev> can be:\n"
 		"\t                       - rtu[:<ttydev>[,<baud>[,<bits><parity><stop>]]]\n"
+		"\t                            default: rtu:%s,%d,%d,%c,%d\n"
 		"\t                       - tcp[:<address>[,<port>]]\n"
-		"\t--help   | -h        - show this help message\n");
+		"\t                            default: tcp:%s,%d\n"
+		"\t--help   | -h        - show this help message\n",
+			modbus_type == RTU ? "rtu" : "tcp",
+			modbus_parms.rtu.serial_dev,
+			modbus_parms.rtu.baud,
+			modbus_parms.rtu.bytes,
+			modbus_parms.rtu.parity,
+			modbus_parms.rtu.stop,
+			modbus_parms.tcp.address,
+			modbus_parms.tcp.port);
 }
 
 int check_common_opts(int argc, char *argv[])
