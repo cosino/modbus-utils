@@ -38,8 +38,9 @@ void usage(void)
 int main(int argc, char *argv[])
 {
 	int addr;
-	modbus_t *ctx;
 	modbus_mapping_t *mb_mapping;
+	modbus_t *ctx;
+	int s;
 	int ret;
 
 	/*
@@ -60,31 +61,39 @@ int main(int argc, char *argv[])
 	 * Modbus stuff
 	 */
 
-	ctx = modbus_server_connect(addr);
+	mb_mapping = modbus_mapping_new(10, 10, 10, 10);
+	if (mb_mapping == NULL) {
+		err("failed to allocate the mapping: %s\n",
+			modbus_strerror(errno));
+		exit(-1);
+	}
+
+	ctx = modbus_server_new(addr, &s);
 	if (!ctx) {
-		err("connection failed: %s", modbus_strerror(errno));
+		err("cannot create server: %s", modbus_strerror(errno));
 		exit(1);
 	}
 
-	mb_mapping = modbus_mapping_new(MODBUS_MAX_READ_BITS, 0,
-					MODBUS_MAX_READ_REGISTERS, 0);
-	if (mb_mapping == NULL) {
-		fprintf(stderr, "Failed to allocate the mapping: %s\n",
-			modbus_strerror(errno));
-		modbus_free(ctx);
-		return -1;
-	}
-
 	for (;;) {
-		uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
+		ret = modbus_server_connect(ctx, &s);
+		if (ret < 0) {
+			err("connection failed: %s", modbus_strerror(errno));
+			exit(1);
+		}
+		dbg("got new connection");
 
-		ret = modbus_receive(ctx, query);
-		if (ret >= 0) {
-			printf("Replying to request.\n");
-			modbus_reply(ctx, query, ret, mb_mapping);
-		} else {
-			/* Connection closed by the client or server */
-			break;
+		for (;;) {
+			uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
+	
+			ret = modbus_receive(ctx, query);
+			dbg("got new query");
+			if (ret >= 0) {
+				modbus_reply(ctx, query, ret, mb_mapping);
+				dbg("query answered");
+			} else {
+				/* Connection closed by the client or server */
+				break;
+			}
 		}
 	}
 
