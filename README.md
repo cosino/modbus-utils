@@ -37,7 +37,7 @@ Usage
 
 Usage is quite simple, just use command:
 
-    $ ./modbus-dump 10 1 39
+    $ ./modbus-dump 10 reg 1 39
     modbus-dump: reg[1]=2562/0x0a02
     modbus-dump: reg[2]=1/0x0001
     modbus-dump: reg[3]=6/0x0006
@@ -45,7 +45,28 @@ Usage is quite simple, just use command:
     modbus-dump: reg[5]=65344/0xff40
     ...
 
-to dump registers from 1 to 39 at slave address 10.
+to dump registers from 1 to 39 at slave address 10; or use the following to
+do multiple queries on the same slave at address 1:
+
+    $ ./modbus-dump 1 ibits 0 0 obits 0 1
+    modbus-dump: ibit[0]=0/0x00
+    modbus-dump: obit[0]=0/0x00
+    modbus-dump: obit[1]=0/0x00
+
+We got input bits and output bits at once.
+
+Note that you can use the watch command as below to refresh the queries each
+second:
+
+    $ watch -n 1 ./modbus-dump -d tcp 1 ibits 0 0 obits 0 1
+
+The output should be something as follow:
+
+    Every 1.0s: ./modbus-dump -d tcp 1 ibits ...  tekkaman: Sat Feb  3 12:50:06 2018
+
+    modbus-dump: ibit[0]=1/0x01
+    modbus-dump: obit[0]=1/0x01
+    modbus-dump: obit[1]=0/0x00
 
 Use command:
 

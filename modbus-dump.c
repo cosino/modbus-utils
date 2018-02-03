@@ -32,7 +32,8 @@ enum modbus_data_e {
 void usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [<options>] <type> <addr> <start> <end>\n", NAME);
+		"usage: %s [<options>] <addr> <type> <start> <end>\n", NAME);
+	fprintf(stderr, "\t[ <type> <start> <end> ... ]\n");
 	fprintf(stderr, "where <type> can be:\n");
 	fprintf(stderr,
 		"\t- \"bits\", \"coil\" or \"obits\" for output bits\n");
@@ -43,64 +44,41 @@ void usage(void)
 	exit(EXIT_FAILURE);
 }
 
-/*
- * MAIN
- */
-
-int main(int argc, char *argv[])
+void do_dump(modbus_t *ctx, char *type, char *start, char *end)
 {
 	enum modbus_data_e mode;
-	int addr;
 	int r_start, r_end;
 	uint8_t *regs8 = NULL;
 	uint16_t *regs16 = NULL;
-	modbus_t *ctx;
 	int i, ret;
 
-	/*
-	 * Check command line
-	 */
-
-	optind = check_common_opts(argc, argv);
-	if (argc - optind < 4)
-		usage();
-
-	if ((strncmp(argv[optind + 0], "bits",
-				strlen(argv[optind + 0])) == 0) ||
-	    (strncmp(argv[optind + 0], "coils",
-				strlen(argv[optind + 0])) == 0))
+	if ((strncmp(type, "bits", strlen(type)) == 0) ||
+	    (strncmp(type, "obits", strlen(type)) == 0) ||
+	    (strncmp(type, "coils", strlen(type)) == 0))
 		mode = MODBUS_BITS;
-	else if (strncmp(argv[optind + 0], "ibits",
-				strlen(argv[optind + 0])) == 0)
+	else if (strncmp(type, "ibits", strlen(type)) == 0)
 		mode = MODBUS_INPUT_BITS;
-	else if (strncmp(argv[optind + 0], "registers",
-				strlen(argv[optind + 0])) == 0)
+	else if (strncmp(type, "registers", strlen(type)) == 0)
 		mode = MODBUS_REGISTERS;
 	else {
-		err("invalid type \"%s\"", argv[optind + 0]);
+		err("invalid type \"%s\"", type);
 		exit(-1);
 	}
 
-	addr = parse_addr(argv[optind + 1]);
-	if (addr < 1) {
-		err("invalid address \"%s\"", argv[optind + 1]);
-		exit(-1);
-	}
-
-	r_start = parse_reg(argv[optind + 2]);
+	r_start = parse_reg(start);
 	if (r_start < 0) {
-		err("invalid start register \"%s\"", argv[optind + 2]);
+		err("invalid start register \"%s\"", start);
 		exit(-1);
 	}
 
-	r_end = parse_reg(argv[optind + 3]);
+	r_end = parse_reg(end);
 	if (r_end < 0) {
-		err("invalid stop register \"%s\"", argv[optind + 3]);
+		err("invalid stop register \"%s\"", end);
 		exit(-1);
 	}
 
 	if (r_end - r_start + 1 <= 0) {
-		err("invalid registers range \"%s\"", argv[optind + 3]);
+		err("invalid registers range \"[%s,%s]\"", start, end);
 		exit(-1);
 	}
 
@@ -129,34 +107,31 @@ int main(int argc, char *argv[])
 	 * Modbus stuff
 	 */
 
-	ctx = modbus_client_connect(addr);
-	if (!ctx) {
-		err("connection failed: %s", modbus_strerror(errno));
-		exit(1);
-	}
-
 	switch (mode) {
 	case MODBUS_BITS:
-	case MODBUS_INPUT_BITS:
-		switch (mode) {
-		default:
-		case MODBUS_BITS:
-			ret = modbus_read_bits(ctx, r_start,
+		ret = modbus_read_bits(ctx, r_start,
 					r_end - r_start + 1, regs8);
-			break;
-
-		case MODBUS_INPUT_BITS:
-			ret = modbus_read_input_bits(ctx, r_start,
-					r_end - r_start + 1, regs8);
-			break;
-		}
 		if (ret == -1) {
 			err("read error: %s", modbus_strerror(errno));
 			exit(-1);
 		}
 	
 		for (i = 0; i < r_end - r_start + 1; i++)
-			printf("%s: reg[%d]=%d/0x%02x\n", NAME, r_start + i,
+			printf("%s: obit[%d]=%d/0x%02x\n", NAME, r_start + i,
+			       regs8[i], regs8[i]);
+
+		break;
+
+	case MODBUS_INPUT_BITS:
+		ret = modbus_read_input_bits(ctx, r_start,
+					r_end - r_start + 1, regs8);
+		if (ret == -1) {
+			err("read error: %s", modbus_strerror(errno));
+			exit(-1);
+		}
+	
+		for (i = 0; i < r_end - r_start + 1; i++)
+			printf("%s: ibit[%d]=%d/0x%02x\n", NAME, r_start + i,
 			       regs8[i], regs8[i]);
 
 		break;
@@ -178,6 +153,43 @@ int main(int argc, char *argv[])
 
 	free(regs8);
 	free(regs16);
+}
+
+/*
+ * MAIN
+ */
+
+int main(int argc, char *argv[])
+{
+	int addr;
+	modbus_t *ctx;
+	int n;
+
+	/*
+	 * Check command line
+	 */
+
+	optind = check_common_opts(argc, argv);
+	if ((argc - optind < 4) || ((argc - optind - 1) % 3))
+		usage();
+
+	addr = parse_addr(argv[optind + 0]);
+	if (addr < 0) {
+		err("invalid address \"%s\"", argv[optind + 0]);
+		exit(-1);
+	}
+
+	ctx = modbus_client_connect(addr);
+	if (!ctx) {
+		err("connection failed: %s", modbus_strerror(errno));
+		exit(1);
+	}
+
+	for (n = 0; n < (argc - optind - 1) / 3; n++)
+		do_dump(ctx, argv[optind + n * 3 + 1],
+			     argv[optind + n * 3 + 2],
+			     argv[optind + n * 3 + 3]);
+
 	modbus_close(ctx);
 	modbus_free(ctx);
 
