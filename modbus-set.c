@@ -55,13 +55,13 @@ int main(int argc, char *argv[])
 
 	addr = parse_addr(argv[optind + 0]);
 	if (addr < 1) {
-		err("invalid address");
+		err("invalid address \"%s\"", argv[optind + 0]);
 		exit(-1);
 	}
 
 	r_start = parse_reg(argv[optind + 1]);
 	if (r_start < 0) {
-		err("invalid start register");
+		err("invalid start register \"%s\"", argv[optind + 1]);
 		exit(-1);
 	}
 
@@ -74,7 +74,8 @@ int main(int argc, char *argv[])
 	for (i = 0; i < argc - optind - 2; i++) {
 		val = parse_datum(argv[optind + 2 + i]);
 		if (val < 0) {
-			err("invalid value at position %d", i);
+			err("invalid value \"%s\" at position %d",
+						argv[optind + 2 + i], i);
 			exit(-1);
 		}
 		regs[i] = val;

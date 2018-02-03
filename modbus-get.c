@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 
 	addr = parse_addr(argv[optind + 0]);
 	if (addr < 1) {
-		err("invalid address");
+		err("invalid address \"%s\"", argv[optind + 0]);
 		exit(-1);
 	}
 
@@ -68,7 +68,8 @@ int main(int argc, char *argv[])
 	for (i = 0; i < argc - optind - 1; i++) {
 		val = parse_reg(argv[optind + 1 + i]);
 		if (val < 0) {
-			err("invalid register at position %d", i);
+			err("invalid value \"%s\" at position %d",
+						argv[optind + 2 + i], i);
 			exit(-1);
 		}
 		regs[i] = val;

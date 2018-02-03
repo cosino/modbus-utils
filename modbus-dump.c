@@ -53,24 +53,24 @@ int main(int argc, char *argv[])
 
 	addr = parse_addr(argv[optind + 0]);
 	if (addr < 1) {
-		err("invalid address");
+		err("invalid address \"%s\"", argv[optind + 0]);
 		exit(-1);
 	}
 
 	r_start = parse_reg(argv[optind + 1]);
 	if (r_start < 0) {
-		err("invalid start register");
+		err("invalid start register \"%s\"", argv[optind + 1]);
 		exit(-1);
 	}
 
 	r_end = parse_reg(argv[optind + 2]);
 	if (r_end < 0) {
-		err("invalid stop register");
+		err("invalid stop register \"%s\"", argv[optind + 2]);
 		exit(-1);
 	}
 
 	if (r_end - r_start + 1 <= 0) {
-		err("invalid registers range");
+		err("invalid registers range \"%s\"", argv[optind + 3]);
 		exit(-1);
 	}
 

@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 
 	addr = parse_addr(argv[optind + 0]);
 	if (addr < 1) {
-		err("invalid address");
+		err("invalid address \"%s\"", argv[optind + 0]);
 		exit(-1);
 	}
 
