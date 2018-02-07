@@ -70,12 +70,18 @@ The output should be something as follow:
 
 Use command:
 
-    $ ./modbus-set 10 12 1000 45000
+    $ ./modbus-set 10 reg 12 1000 45000
 
 to write 1000 into register 12 and 45000 into register 13 at slave
 address 10.
 
 And use command:
+
+    $ ./modbus-set 1 coil 1 0
+
+to wrote 0 into coil bit 1.
+
+Use command:
 
     $ ./modbus-get 10 13 12
     modbus-get: reg[13]=45000/0xafc8

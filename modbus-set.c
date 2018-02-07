@@ -19,6 +19,11 @@
 
 #include "modbus_utils.h"
 
+enum modbus_data_e {
+	MODBUS_BITS,
+	MODBUS_REGISTERS,
+};
+
 /*
  * Local functions
  */
@@ -26,7 +31,14 @@
 void usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [<options>] <addr> <reg> <val> [<val> ...]\n", NAME);
+		"usage: %s [<options>] <addr> <type> <start> <val>\n", NAME);
+	fprintf(stderr, "\t[<val> ...]\n");
+	fprintf(stderr, "where <type> can be:\n");
+	fprintf(stderr,
+		"\t- \"bits\", \"coil\" or \"obits\" for output bits\n");
+	fprintf(stderr,
+		"\t- \"registers\", \"holding\" or \"oregisters\" for "
+		"output registers\n");
 	usage_common_opts();
 
 	exit(EXIT_FAILURE);
@@ -40,8 +52,11 @@ int main(int argc, char *argv[])
 {
 	int optind;
 	int addr;
+	char *type;
+	enum modbus_data_e mode;
 	int r_start;
-	uint16_t *regs;
+	uint8_t *regs8 = NULL;
+	uint16_t *regs16 = NULL;
 	modbus_t *ctx;
 	int i, val, ret;
 
@@ -59,45 +74,91 @@ int main(int argc, char *argv[])
 		exit(-1);
 	}
 
-	r_start = parse_reg(argv[optind + 1]);
-	if (r_start < 0) {
-		err("invalid start register \"%s\"", argv[optind + 1]);
-		exit(-1);
-	}
-
-	regs = malloc(sizeof(uint16_t) * (argc - optind - 2));
-	if (!regs) {
-		err("out of memory!");
-		exit(-1);
-	}
-
-	for (i = 0; i < argc - optind - 2; i++) {
-		val = parse_datum(argv[optind + 2 + i]);
-		if (val < 0) {
-			err("invalid value \"%s\" at position %d",
-						argv[optind + 2 + i], i);
-			exit(-1);
-		}
-		regs[i] = val;
-	}
-
-	/*
-	 * Modbus stuff
-	 */
-
 	ctx = modbus_client_connect(addr);
 	if (!ctx) {
 		err("modbud connection failed: %s", modbus_strerror(errno));
 		exit(1);
 	}
 
-	ret = modbus_write_registers(ctx, r_start, argc - optind - 2, regs);
-	if (ret == -1) {
-		err("read error: %s", modbus_strerror(errno));
+	type = argv[optind + 1];
+	if ((strncmp(type, "bits", strlen(type)) == 0) ||
+	    (strncmp(type, "obits", strlen(type)) == 0) ||
+	    (strncmp(type, "coils", strlen(type)) == 0))
+		mode = MODBUS_BITS;
+	else if ((strncmp(type, "registers", strlen(type)) == 0) ||
+		 (strncmp(type, "oregisters", strlen(type)) == 0) ||
+		 (strncmp(type, "holding", strlen(type)) == 0))
+		mode = MODBUS_REGISTERS;
+	else {
+		err("invalid type \"%s\"", type);
 		exit(-1);
 	}
 
-	free(regs);
+	r_start = parse_reg(argv[optind + 2]);
+	if (r_start < 0) {
+		err("invalid start register \"%s\"", argv[optind + 2]);
+		exit(-1);
+	}
+
+	switch (mode) {
+	case MODBUS_BITS:
+		regs8 = malloc(sizeof(uint8_t) * (argc - optind - 3));
+		if (!regs8) {
+			err("out of memory!");
+			exit(-1);
+		}
+
+		break;
+
+	case MODBUS_REGISTERS:
+		regs16 = malloc(sizeof(uint16_t) * (argc - optind - 3));
+		if (!regs16) {
+			err("out of memory!");
+			exit(-1);
+		}
+
+		break;
+	}
+
+	for (i = 0; i < argc - optind - 3; i++) {
+		val = parse_datum(argv[optind + 3 + i]);
+		if (val < 0) {
+			err("invalid value \"%s\" at position %d",
+						argv[optind + 3 + i], i);
+			exit(-1);
+		}
+		switch (mode) {
+		case MODBUS_BITS:
+			regs8[i] = val;
+			break;
+
+		case MODBUS_REGISTERS:
+			regs16[i] = val;
+			break;
+		}
+	}
+
+	/*
+	 * Modbus stuff
+	 */
+
+	switch (mode) {
+	case MODBUS_BITS:
+		ret = modbus_write_bits(ctx, r_start ,
+					argc - optind - 3, regs8);
+		break;
+	case MODBUS_REGISTERS:
+		ret = modbus_write_registers(ctx, r_start,
+					argc - optind - 3, regs16);
+		break;
+	}
+	if (ret == -1) {
+		err("write error: %s", modbus_strerror(errno));
+		exit(-1);
+	}
+
+	free(regs8);
+	free(regs16);
 	modbus_close(ctx);
 	modbus_free(ctx);
 
