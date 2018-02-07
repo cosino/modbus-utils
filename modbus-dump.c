@@ -23,6 +23,7 @@ enum modbus_data_e {
 	MODBUS_BITS,
 	MODBUS_INPUT_BITS,
 	MODBUS_REGISTERS,
+	MODBUS_INPUT_REGISTERS,
 };
 
 /*
@@ -38,7 +39,10 @@ void usage(void)
 	fprintf(stderr,
 		"\t- \"bits\", \"coil\" or \"obits\" for output bits\n");
 	fprintf(stderr, "\t- \"ibits\" for input bits\n");
-	fprintf(stderr, "\t- \"registers\" for registers\n");
+	fprintf(stderr,
+		"\t- \"registers\", \"holding\" or \"oregisters\" for "
+		"output registers\n");
+	fprintf(stderr, "\t- \"iregisters\" for input registers\n");
 	usage_common_opts();
 
 	exit(EXIT_FAILURE);
@@ -58,8 +62,12 @@ void do_dump(modbus_t *ctx, char *type, char *start, char *end)
 		mode = MODBUS_BITS;
 	else if (strncmp(type, "ibits", strlen(type)) == 0)
 		mode = MODBUS_INPUT_BITS;
-	else if (strncmp(type, "registers", strlen(type)) == 0)
+	else if ((strncmp(type, "registers", strlen(type)) == 0) ||
+		 (strncmp(type, "oregisters", strlen(type)) == 0) ||
+		 (strncmp(type, "holding", strlen(type)) == 0))
 		mode = MODBUS_REGISTERS;
+	else if (strncmp(type, "iregisters", strlen(type)) == 0)
+		mode = MODBUS_INPUT_REGISTERS;
 	else {
 		err("invalid type \"%s\"", type);
 		exit(-1);
@@ -94,6 +102,7 @@ void do_dump(modbus_t *ctx, char *type, char *start, char *end)
 		break;
 
 	case MODBUS_REGISTERS:
+	case MODBUS_INPUT_REGISTERS:
 		regs16 = malloc(sizeof(uint16_t) * (r_end - r_start + 1));
 		if (!regs16) {
 			err("out of memory!");
@@ -145,7 +154,21 @@ void do_dump(modbus_t *ctx, char *type, char *start, char *end)
 		}
 	
 		for (i = 0; i < r_end - r_start + 1; i++)
-			printf("%s: reg[%d]=%d/0x%04x\n", NAME, r_start + i,
+			printf("%s: oreg[%d]=%d/0x%04x\n", NAME, r_start + i,
+			       regs16[i], regs16[i]);
+
+		break;
+
+	case MODBUS_INPUT_REGISTERS:
+		ret = modbus_read_input_registers(ctx, r_start,
+					r_end - r_start + 1, regs16);
+		if (ret == -1) {
+			err("read error: %s", modbus_strerror(errno));
+			exit(-1);
+		}
+
+		for (i = 0; i < r_end - r_start + 1; i++)
+			printf("%s: ireg[%d]=%d/0x%04x\n", NAME, r_start + i,
 			       regs16[i], regs16[i]);
 	
 		break;
