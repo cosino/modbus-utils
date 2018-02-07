@@ -81,21 +81,13 @@ And use command:
 
 to wrote 0 into coil bit 1.
 
-Use command:
-
-    $ ./modbus-get 10 13 12
-    modbus-get: reg[13]=45000/0xafc8
-    modbus-get: reg[12]=1000/0x03e8
-
-to read registers 13 and 12 at slave address 10.
-
 By default RTU connection has the following options:
 
     rtu:/dev/ttyUSB0,115200,8,N,1
 
 and you can modify it by using for instance:
 
-    $ ./modbus-get -d rtu:/dev/ttyUSB1,9600,8E1 10 13 12
+    $ ./modbus-dump -d rtu:/dev/ttyUSB1,9600,8E1 10 reg 13 12
 
 to specify serial the device /dev/ttyUSB1 set at 9600 baud, 8 data
 bits, even parity and 1 bit stop.
